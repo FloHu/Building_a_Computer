@@ -1,0 +1,9 @@
+*.cmp
+*.tst
+*.txt
+*.out
+*.hack
+00/
+demo/
+.DS_Store
+

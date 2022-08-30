@@ -1,0 +1,8 @@
+@100
+D=M
+D;JLE
+D;JGE
+D=D-A
+M=M+1
+0;JMP
+M=1
