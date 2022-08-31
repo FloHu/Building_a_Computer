@@ -2,6 +2,18 @@ import os
 import re
 import Code
 
+class Assembler:
+    def __init__(self, parser):
+        self.parser = parser
+    
+    def assemble(self, infile):
+        basename, _ = os.path.splitext(infile)
+        outfile = basename + ".hack"
+        outfile = open(outfile, "w")
+        with open(infile, "r") as input:
+            nextline = input.readline()
+            decoded = self.parser(nextline)
+
 class Parser:
     def __init__(self, infile):
         # open file and read the first line
@@ -64,6 +76,8 @@ class Parser:
             for key in ['comp', 'dest', 'jump']:
                 decoded += Code.lookup_table[key][components[key]]
             decoded = prefix + decoded
+        elif command_type == 'L_COMMAND':
+            pass
         else:
             raise ValueError()
         return decoded
