@@ -69,8 +69,3 @@ class Parser:
         return decoded
 
 
-
-parser = Parser("test.asm")
-parser.parse_nextline()
-while parser.hasMoreCommands:
-    parser.parse_nextline()
