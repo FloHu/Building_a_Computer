@@ -1,12 +1,13 @@
 import os
 import re
+import Code
 
 class Parser:
     def __init__(self, infile):
         # open file and read the first line
         # currently assumes that empty lines mean EOF
         self.infile = open(infile, "r")
-        basename, extension = os.path.splitext(infile)
+        basename, _ = os.path.splitext(infile)
         outfile = basename + ".hack"
         self.outfile = open(outfile, "w")
 
@@ -32,10 +33,11 @@ class Parser:
         nextline = nextline.rstrip()
         nextline = nextline.rstrip(os.linesep)
         if nextline:
-            print("Found another line:", nextline)
+            #print("Found another line:", nextline)
             if nextline.startswith("@"):
                 commandType = "A_COMMAND"
-                self.symbol = format(int(nextline[1:]), "b") 
+                #print(self.translate_mnemonics(nextline, commandType))
+                decoded = self.translate_mnemonics(nextline, commandType)
             elif nextline.startswith("("):
                 commandType = "L_COMMAND"
             else:
@@ -46,81 +48,25 @@ class Parser:
                 for key, value in components.items():
                     if value == '':
                         components[key] = 'null'
-                print(components)
-                print(self.translate_mnemonics(components))
-            print(commandType)
+                #print(components)
+                #print(self.translate_mnemonics(components, commandType))
+                decoded = self.translate_mnemonics(components, commandType)
+            #print(commandType)
+            self.outfile.write(decoded + "\n")
     
-    def translate_mnemonics(self, components):
-        dest_lut = {
-            'null': '000', 
-            'M': '001', 
-            'D': '010', 
-            'MD': '011', 
-            'A': '100', 
-            'AM': '101', 
-            'AD': '110', 
-            'AMD': '111'
-        }
-        # value written in two parts to distinguish between a=0 and a=1
-        comp_lut = {
-            '0':    '0' + '101010', 
-            '1':    '0' + '111111', 
-            '-1':   '0' + '111010', 
-            'D':    '0' + '001100', 
-            'A':    '0' + '110000', 
-            '!D':   '0' + '001101', 
-            '!A':   '0' + '110001', 
-            '-D':   '0' + '001111', 
-            '-A':   '0' + '110011', 
-            'D+1':  '0' + '011111', 
-            'A+1':  '0' + '110111', 
-            'D-1':  '0' + '001110', 
-            'A-1':  '0' + '110010', 
-            'D+A':  '0' + '000010', 
-            'D-A':  '0' + '010011', 
-            'A-D':  '0' + '000111', 
-            'D&A':  '0' + '000000', 
-            'D|A':  '0' + '010101', 
-            # a=1
-            'M':    '1' + '110000', 
-            '!M':   '1' + '110001', 
-            '-M':   '1' + '110011', 
-            'M+1':  '1' + '110111', 
-            'M-1':  '1' + '110010', 
-            'D+M':  '1' + '000010', 
-            'D-M':  '1' + '010011', 
-            'M-D':  '1' + '000111', 
-            'D&M':  '1' + '000000', 
-            'D|M':  '1' + '010101'
-        }
-        jump_lut = {
-            'null': '000', 
-            'JGT': '001', 
-            'JEQ': '010', 
-            'JGE': '011', 
-            'JLT': '100', 
-            'JNE': '101', 
-            'JLE': '110', 
-            'JMP': '111'
-        }
-        lut = {'dest': dest_lut, 'comp': comp_lut, 'jump': jump_lut}
+    def translate_mnemonics(self, components, command_type):
         decoded = ''
-        c_instruction_prefix = '111'
-        for key in ['comp', 'dest', 'jump']:
-            decoded += lut[key][components[key]]
-        decoded = c_instruction_prefix + decoded
+        if command_type == 'A_COMMAND':
+            prefix = '0'
+            decoded = prefix + format(int(components[1:]), "015b")
+        elif command_type == 'C_COMMAND':
+            prefix = '111'
+            for key in ['comp', 'dest', 'jump']:
+                decoded += Code.lookup_table[key][components[key]]
+            decoded = prefix + decoded
+        else:
+            raise ValueError()
         return decoded
-
-    def dest(self):
-        pass
-
-    def comp(self):
-        pass
-
-    def jump(self):
-        pass
-
-
 
 
 
