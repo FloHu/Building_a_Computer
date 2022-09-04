@@ -51,13 +51,15 @@ class Assembler:
 class Parser:
     def __init__(self):
         self.comment_pattern = re.compile(r"//.*")
-        self.label_pattern = re.compile(r"\((?P<label>END)\)")
-        self.var_pattern = re.compile(r"(?P<var>[A-Za-z])+")
-        self.c_command_pattern = re.compile(r"(?P<dest>[AMD]*)?(=)?(?P<comp>[01\-D!AM|+]+)(;)?(?P<jump>.*)?")
+        self.label_pattern = re.compile(r"\((?P<label>[A-Za-z0-9_\.\$]+)\)")
+        self.var_pattern = re.compile(r"(?P<var>[A-Za-z0-9_\.\$]+)")
+        self.number_pattern = re.compile(r"[0-9]+")
+        self.c_command_pattern = re.compile(r"(?P<dest>[AMD]*)?(=)?(?P<comp>[01\-D!AM&|+]+)(;)?(?P<jump>.*)?")
     
     def clean_line(self, line):
         # remove comments and newlines
         line = self.comment_pattern.sub('', line)
+        line = line.lstrip()
         line = line.rstrip()
         line = line.rstrip(os.linesep)
         return line
@@ -68,7 +70,7 @@ class Parser:
         for line in inputlines:
             line = self.clean_line(line)
             if not line:
-                raise AssemblyError(f"Assembly of empty or comment-only lines currently not supported (in input line {cur_line}).")
+                continue
             labelmatch = self.label_pattern.fullmatch(line)
             if not labelmatch:
                 cur_line += 1
@@ -83,21 +85,24 @@ class Parser:
         for line in inputlines:
             line = self.clean_line(line)
             # skip lines containing label definitions (Xxx)
-            if self.label_pattern.fullmatch(line):
-                next
+            if not line or self.label_pattern.fullmatch(line):
+                continue
             if line.startswith("@"):
                 command_type = "A_COMMAND"
                 line = line[1:]
-                # if variable pattern does not match it must be a value
-                varmatch = self.var_pattern.match(line)
-                if varmatch:
+                # check if it's a number
+                numbermatch = self.number_pattern.fullmatch(line)
+                if numbermatch:
+                    decoded = self.translate_mnemonics(line, command_type)
+                elif self.var_pattern.match(line):
+                    varmatch = self.var_pattern.match(line)
                     var = varmatch.groupdict()['var']
                     if not var in self.symbol_table:
                         self.symbol_table.addVariable(variable=var)
                     var_address = self.symbol_table[var]
                     decoded = self.translate_mnemonics(var_address, command_type)
                 else:
-                    decoded = self.translate_mnemonics(line, command_type)
+                    raise AssemblyError()
             else:
                 command_type = "C_COMMAND"
                 components = self.c_command_pattern.search(line)
