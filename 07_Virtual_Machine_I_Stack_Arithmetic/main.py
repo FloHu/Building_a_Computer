@@ -9,7 +9,7 @@
 import argparse
 from pathlib import Path
 import os
-
+from Parser import Parser
 
 parser = argparse.ArgumentParser(
     description = """
@@ -29,7 +29,7 @@ if not input_path.exists():
 vm_files = []
 
 if input_path.is_dir():
-    vm_files.append(list(input_path.glob('*.vm')))
+    vm_files.extend(list(input_path.glob('*.vm')))
 elif input_path.is_file() and input_path.match('*.vm'):
     vm_files.append(input_path)
 
@@ -38,6 +38,15 @@ if len(vm_files) > 0:
 else:
     raise Exception("No .vm files found.")
 
+# TO DO: initialize the CodeWriter
 
-# check file endings
-
+for vm_file in vm_files:
+    parser = Parser(file=vm_file)
+    print(f"parser.codelines: {parser.codelines}")
+    while True:
+        try:
+            parser.advance()
+            print(f"{parser.currentCommand}")
+        except Exception as e:
+            print(e)
+            break
