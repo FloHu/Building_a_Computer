@@ -3,6 +3,16 @@ import os
 
 class Parser:
     comment_pattern = re.compile(r"//.*")
+    commandTypeLUT = {
+        'push' : 'C_PUSH', 
+        'pop' : 'C_POP', 
+        'NA0' : 'C_LABEL', 
+        'NA1' : 'C_GOTO', 
+        'NA2' : 'C_IF', 
+        'NA3' : 'C_FUNCTION', 
+        'NA4' : 'C_RETURN', 
+        'NA5' : 'C_CALL'
+    }
 
     def __init__(self, file) -> None:
         with open(file, "r") as f:
@@ -32,9 +42,33 @@ class Parser:
     def advance(self):
         if self.hasMoreCommands():
             self.currentCommand = self.codelines[0]
+            self.currentCommandTokens = self.getCurrentCommandTokens()
+            self.currentCommandType = self.getCurrentCommandType()
             self.codelines = self.codelines[1:]
         else:
             raise EOFError("No more commands in current .vm file.")
 
     def hasMoreCommands(self):
         return len(self.codelines) > 0
+    
+    def getCurrentCommandTokens(self):
+        tokens = self.currentCommand.split()
+        return tokens
+
+    def getCurrentCommandType(self):
+        cmd_type = self.commandTypeLUT.get(self.currentCommandTokens[0], 'C_ARITHMETIC')
+        return cmd_type
+    
+    def getArg1(self):
+        if self.currentCommandType == "C_RETURN":
+            return ''
+        elif self.currentCommandType == "C_ARITHMETIC":
+            return self.currentCommandTokens[0]
+        else:
+            return self.currentCommandTokens[1]
+
+    def getArg2(self):
+        if self.currentCommandType in ["C_PUSH", "C_POP", "C_FUNCTION", "C_CALL"]:
+            return int(self.currentCommandTokens[2])
+        else:
+            return ''

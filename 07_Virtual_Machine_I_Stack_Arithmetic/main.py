@@ -34,7 +34,8 @@ elif input_path.is_file() and input_path.match('*.vm'):
     vm_files.append(input_path)
 
 if len(vm_files) > 0:
-    print(vm_files)
+    print(f"vm_files: {vm_files}")
+    print()
 else:
     raise Exception("No .vm files found.")
 
@@ -43,10 +44,16 @@ else:
 for vm_file in vm_files:
     parser = Parser(file=vm_file)
     print(f"parser.codelines: {parser.codelines}")
+    print()
     while True:
         try:
             parser.advance()
-            print(f"{parser.currentCommand}")
+            print(f"parser.currentCommand: {parser.currentCommand}")
+            print(f"parser.currentCommandType: {parser.currentCommandType}")
+            print(f"parser.currentCommandTokens: {parser.currentCommandTokens}")
+            print(f"parser.getArg1: {parser.getArg1()}")
+            print(f"parser.getArg2: {parser.getArg2()}")
+            print()
         except Exception as e:
             print(e)
             break
