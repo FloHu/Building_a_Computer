@@ -1,20 +1,21 @@
-// test at manually translating SimpleAdd.vm
+// initialize value of SP (address: 0, see previous chapter) to 256
 @256
 D=A
 @SP
 M=D
+// move constant value to location stored in SP:
+// step 1: load into D register:
 @7
 D=A
-// the following will move the value in D to the location specified in 0 (=@SP)
-// i.e. @SP (=@0) --> A=M --> M=D results in the content of A being used as a pointer 
-// and the location that is pointed to gets the value in D
+// step 2: use value stored in SP as a pointer ...
 @SP
 A=M
+// ... and then M=... can be used to push to that memory address the value that is in D:
 M=D
-// now increase the value of @SP
+// step 3: increase SP by 1
 @SP
 M=M+1
-// add 8 to the stack and increase value in SP by 1:
+// do the same for pushing 8
 @8
 D=A
 @SP
@@ -23,23 +24,19 @@ M=D
 @SP
 M=M+1
 // 'add' command: 
-// reduce SP by 1
+// step 1: reduce SP by 1 (note: we could save this and the previous step if we know that the next 
+// command is add - but I don't think we can actually know e.g. with if there is some branching command)
 @SP
 M=M-1
 // retrieve value pointed to and store in D register
-@SP
 A=M
 D=M
 // reduce SP by 1
 @SP
 M=M-1
 // retrieve value pointed to and update D register
-@SP
 A=M
 D=D+M
-// store value from D in location pointed to
-@SP
-A=M
 M=D
 // increase SP by 1
 @SP
