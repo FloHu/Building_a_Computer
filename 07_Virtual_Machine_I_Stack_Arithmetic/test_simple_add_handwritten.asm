@@ -31,12 +31,13 @@ M=M-1
 // retrieve value pointed to and store in D register
 A=M
 D=M
-// reduce SP by 1
+// reduce SP by 1 to get second value
 @SP
 M=M-1
 // retrieve value pointed to and update D register
 A=M
 D=D+M
+// then update memory location
 M=D
 // increase SP by 1
 @SP

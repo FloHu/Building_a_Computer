@@ -10,6 +10,7 @@ import argparse
 from pathlib import Path
 import os
 from Parser import Parser
+from CodeWriter import CodeWriter
 
 parser = argparse.ArgumentParser(
     description = """
@@ -39,10 +40,11 @@ if len(vm_files) > 0:
 else:
     raise Exception("No .vm files found.")
 
-# TO DO: initialize the CodeWriter
+code_writer = CodeWriter(outfilename="foo.asm")
 
 for vm_file in vm_files:
     parser = Parser(file=vm_file)
+    """
     print(f"parser.codelines: {parser.codelines}")
     print()
     while True:
@@ -57,3 +59,16 @@ for vm_file in vm_files:
         except Exception as e:
             print(e)
             break
+    """
+    while parser.hasMoreCommands():
+        try:
+            parser.advance()
+            cmd_type, arg1, arg2 = parser.currentCommandType, parser.getArg1(), parser.getArg2()
+            code_writer.writeCommand(cmd_type=cmd_type, arg1=arg1, arg2=arg2)
+
+        except EOFError:
+            print("\nTranslation of .vm files finished")
+            code_writer.close()
+            break
+
+#code_writer.close()
