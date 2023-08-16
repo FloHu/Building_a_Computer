@@ -5,7 +5,7 @@ class CodeWriter:
     # (https://stackoverflow.com/questions/30154665/how-can-i-write-an-interpreter-for-eq-for-hack-assembly-language) 
     # but this is not the one implemented here as I did not came up with it by myself
     RunningIndComps = 0
-    segment_map = {
+    segment_name_map = {
         'local': 'LCL', 
         'argument': 'ARG', 
         'this': 'THIS', 
@@ -113,50 +113,36 @@ class CodeWriter:
         if segment == "constant":
             self.outfile.write(f"@{index}\n")
             self.outfile.write("D=A\n")
-            self.outfile.write("@SP\n")
-            self.dereferenceSP()
-            self.outfile.write("M=D\n")
-            self.increaseSP()
-        elif segment in self.segment_map:
-            # e.g. 'push argument 1': just like with 'pop argument 1' need to add argument and index, 
-            # dereference and store, then put on the stack
+            self.pushDRegisterOntoStack()
+        elif segment in ["local", "argument", "this", "that"]:
+            # these are all pointers: fetch value, add index, dereference, fetch value, put on the stack
             self.outfile.write(f"@{index}\n") 
             self.outfile.write("D=A\n")
-            self.outfile.write(f"@{self.segment_map[segment]}\n")
+            self.outfile.write(f"@{self.segment_name_map[segment]}\n")
             self.outfile.write("A=D+M\n")
             self.outfile.write("D=M\n")
-            self.outfile.write("@SP\n")
-            self.outfile.write("A=M\n")
-            self.outfile.write("M=D\n")
-            self.increaseSP()
+            self.pushDRegisterOntoStack()
         elif segment == "temp":
-            ## TO DO: can be generalized together with this and that
             ram_loc = 5 + index
             # get value from ram location and then put on stack
             self.outfile.write(f"@{str(ram_loc)}\n")
             self.outfile.write("D=M\n")
-            self.outfile.write("@SP\n")
-            self.outfile.write("A=M\n")
-            self.outfile.write("M=D\n")
-            self.increaseSP()
+            self.pushDRegisterOntoStack()
+        self.increaseSP()
     
     def writePop(self, segment, index):
-        if segment in self.segment_map:
-            ## TO DO: later check if this is true, perhaps generalise/refactor
-            # at the moment: segment_map contains pointers to somewhere in memory: 
-            # index needs to be added to those pointers before dereferencing them
+        if segment in ["local", "argument", "this", "that"]:
+            # first store target address in @R13
             self.outfile.write(f"@{index}\n")
             self.outfile.write("D=A\n")
-            self.outfile.write(f"@{self.segment_map[segment]}\n")
-            self.outfile.write("D=D+M\n") # = index + M[@LCL]
-            self.outfile.write("@R13\n")# intermediate storage in R13 
-            self.outfile.write("M=D\n")
-            # now pop stack into D, dereference address in R13 and put D there
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("D=M\n")
+            self.outfile.write(f"@{self.segment_name_map[segment]}\n")
+            self.outfile.write("D=D+M\n") # = index + M[@LCL]/M[@ARG] etc.
             self.outfile.write("@R13\n")
-            self.outfile.write("A=M\n")
+            self.outfile.write("M=D\n")
+            # now pop top of stack into D, dereference address in R13 and put D there
+            self.popIntoDRegister()
+            self.outfile.write("@R13\n")
+            self.dereferenceSP()
             self.outfile.write("M=D\n")
         elif segment == "temp":
             ram_loc = 5 + index
@@ -170,6 +156,11 @@ class CodeWriter:
         self.decreaseSP()
         self.dereferenceSP()
         self.outfile.write("D=M\n")
+    
+    def pushDRegisterOntoStack(self):
+        self.outfile.write("@SP\n")
+        self.dereferenceSP()
+        self.outfile.write("M=D\n")
 
     def increaseSP(self):
         self.outfile.write("@SP\n")
