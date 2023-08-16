@@ -3,7 +3,7 @@ class CodeWriter:
     # this class variable keeps a record of how often one of eq/gt/lt operations have been run
     # since these will be implemented by jumps. There is apparently a (presumably) more clever solution 
     # (https://stackoverflow.com/questions/30154665/how-can-i-write-an-interpreter-for-eq-for-hack-assembly-language) 
-    # but this is not the one I came up with by myself
+    # but this is not the one implemented here as I did not came up with it by myself
     RunningIndComps = 0
     segment_map = {
         'local': 'LCL', 
@@ -19,6 +19,14 @@ class CodeWriter:
         self.outfile.write("D=A\n")
         self.outfile.write("@SP\n")
         self.outfile.write("M=D\n")
+        self.arithmetic_operations = {
+            "add": self.add, 
+            "sub": self.sub, 
+            "and": self.and_op, 
+            "or": self.or_op, 
+            "neg": self.neg_op, 
+            "not": self.not_op
+        }
     
     def writeCommand(self, cmd_type: str, arg1: str, arg2: str):
         ## TO DO: switch case in Python available since 3.10 - use here? 
@@ -30,32 +38,9 @@ class CodeWriter:
             self.writeArithmetic(command=arg1)
 
     def writeArithmetic(self, command):
-        if command == "add":
-            self.writePop(segment="constant", index=None) # top value now in D
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("M=D+M\n")
-            self.increaseSP()
-        elif command == "sub":
-            self.writePop(segment="constant", index=None)
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("M=M-D\n")
-            self.increaseSP()
-        elif command == "and":
-            self.writePop(segment="constant", index=None)
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("M=D&M\n")
-            self.increaseSP()
-        elif command == "or":
-            self.writePop(segment="constant", index=None)
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("M=D|M\n")
-            self.increaseSP()
-        elif command == "eq":
-            self.writePop(segment="constant", index=None)
+        self.popIntoDRegister()
+
+        if command == "eq":
             self.decreaseSP()
             self.dereferenceSP()
             self.outfile.write("D=M-D\n") # D now contains the result of the comparison
@@ -75,10 +60,7 @@ class CodeWriter:
             self.outfile.write("@SP\n")
             self.dereferenceSP()
             self.outfile.write("M=D\n")
-            self.increaseSP()
         elif command == "gt":
-            ## TO DO: refactor eq/gt/lt  
-            self.writePop(segment="constant", index=None)
             self.decreaseSP()
             self.dereferenceSP()
             self.outfile.write("D=M-D\n") # D now contains the result of the comparison
@@ -98,9 +80,7 @@ class CodeWriter:
             self.outfile.write("@SP\n")
             self.dereferenceSP()
             self.outfile.write("M=D\n")
-            self.increaseSP()
         elif command == "lt":
-            self.writePop(segment="constant", index=None)
             self.decreaseSP()
             self.dereferenceSP()
             self.outfile.write("D=M-D\n") # D now contains the result of the comparison
@@ -120,23 +100,36 @@ class CodeWriter:
             self.outfile.write("@SP\n")
             self.dereferenceSP()
             self.outfile.write("M=D\n")
-            self.increaseSP()
-        elif command == "neg":
-            self.writePop(segment="constant", index=None)
-            self.outfile.write("D=-D\n")
-            self.outfile.write("@SP\n")
-            self.dereferenceSP()
-            self.outfile.write("M=D\n")
-            self.increaseSP()
-        elif command == "not":
-            self.writePop(segment="constant", index=None)
-            self.outfile.write("D=!D\n")
-            self.outfile.write("@SP\n")
-            self.dereferenceSP()
-            self.outfile.write("M=D\n")
-            self.increaseSP()
-        else:
-            raise ValueError(f"Command {command} does not exist")
+        elif command in ["add", "sub", "and", "or"]:
+            self.prepareForArithmetic()
+        operation = self.arithmetic_operations.get(command)
+        if operation:
+            operation()
+
+        self.increaseSP()
+    
+
+    def prepareForArithmetic(self):
+        self.decreaseSP()
+        self.dereferenceSP()
+    
+    def add(self):
+        self.outfile.write("M=D+M\n")
+    
+    def sub(self):
+        self.outfile.write("M=M-D\n")
+    
+    def and_op(self):
+        self.outfile.write("M=D&M\n")
+
+    def or_op(self):
+        self.outfile.write("M=D|M\n")
+    
+    def neg_op(self):
+        self.outfile.write("M=-D\n")
+    
+    def not_op(self):
+        self.outfile.write("M=!D\n")
 
     def writePush(self, segment, index):
         if segment == "constant":
@@ -170,13 +163,7 @@ class CodeWriter:
             self.increaseSP()
     
     def writePop(self, segment, index):
-        ## TO DO: calls to writePop() from arithmetic commands or using segment = 'constant' don't need an index
-        # handle this better
-        if segment == "constant":
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("D=M\n")
-        elif segment in self.segment_map:
+        if segment in self.segment_map:
             ## TO DO: later check if this is true, perhaps generalise/refactor
             # at the moment: segment_map contains pointers to somewhere in memory: 
             # index needs to be added to those pointers before dereferencing them
@@ -200,7 +187,12 @@ class CodeWriter:
             self.outfile.write("D=M\n")
             self.outfile.write(f"@{str(ram_loc)}\n")
             self.outfile.write("M=D\n")
-    
+
+    def popIntoDRegister(self):
+        self.decreaseSP()
+        self.dereferenceSP()
+        self.outfile.write("D=M\n")
+
     def increaseSP(self):
         self.outfile.write("@SP\n")
         self.outfile.write("M=M+1\n")

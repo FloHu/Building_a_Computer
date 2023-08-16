@@ -31,8 +31,10 @@ vm_files = []
 
 if input_path.is_dir():
     vm_files.extend(list(input_path.glob('*.vm')))
+    outfilename = Path(input_path, input_path.stem + ".asm")
 elif input_path.is_file() and input_path.match('*.vm'):
     vm_files.append(input_path)
+    outfilename = Path(input_path.parents[0], input_path.stem + ".asm")
 
 if len(vm_files) > 0:
     print(f"vm_files: {vm_files}")
@@ -40,7 +42,8 @@ if len(vm_files) > 0:
 else:
     raise Exception("No .vm files found.")
 
-code_writer = CodeWriter(outfilename="foo.asm")
+code_writer = CodeWriter(outfilename=outfilename)
+print(f"Writing code to {outfilename}")
 
 for vm_file in vm_files:
     parser = Parser(file=vm_file)
