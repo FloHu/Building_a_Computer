@@ -19,6 +19,7 @@ class CodeWriter:
         self.outfile.write("D=A\n")
         self.outfile.write("@SP\n")
         self.outfile.write("M=D\n")
+        
         self.arithmetic_operations = {
             "add": self.add, 
             "sub": self.sub, 
@@ -27,6 +28,13 @@ class CodeWriter:
             "neg": self.neg_op, 
             "not": self.not_op
         }
+
+        self.comparison_operations = {
+            "eq": self.eq, 
+            "gt": self.gt, 
+            "lt": self.lt
+        }
+
     
     def writeCommand(self, cmd_type: str, arg1: str, arg2: str):
         ## TO DO: switch case in Python available since 3.10 - use here? 
@@ -40,7 +48,7 @@ class CodeWriter:
     def writeArithmetic(self, command):
         self.popIntoDRegister()
 
-        if command == "eq":
+        if command in ["eq", "gt", "lt"]:
             self.decreaseSP()
             self.dereferenceSP()
             self.outfile.write("D=M-D\n") # D now contains the result of the comparison
@@ -50,47 +58,10 @@ class CodeWriter:
             continueloc = "CONTINUELOC." + str(self.RunningIndComps)
 
             self.outfile.write("@" + iftrueloc + "\n")
-            self.outfile.write("D;JEQ\n")
-            self.outfile.write("D=0\n")
-            self.outfile.write("@" + continueloc + "\n")
-            self.outfile.write("0;JMP\n")
-            self.outfile.write("(" + iftrueloc + ")\n")
-            self.outfile.write("D=-1\n")
-            self.outfile.write("(" + continueloc + ")\n")
-            self.outfile.write("@SP\n")
-            self.dereferenceSP()
-            self.outfile.write("M=D\n")
-        elif command == "gt":
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("D=M-D\n") # D now contains the result of the comparison
-
-            self.RunningIndComps += 1
-            iftrueloc = "IFTRUELOC." + str(self.RunningIndComps)
-            continueloc = "CONTINUELOC." + str(self.RunningIndComps)
-
-            self.outfile.write("@" + iftrueloc + "\n")
-            self.outfile.write("D;JGT\n")
-            self.outfile.write("D=0\n")
-            self.outfile.write("@" + continueloc + "\n")
-            self.outfile.write("0;JMP\n")
-            self.outfile.write("(" + iftrueloc + ")\n")
-            self.outfile.write("D=-1\n")
-            self.outfile.write("(" + continueloc + ")\n")
-            self.outfile.write("@SP\n")
-            self.dereferenceSP()
-            self.outfile.write("M=D\n")
-        elif command == "lt":
-            self.decreaseSP()
-            self.dereferenceSP()
-            self.outfile.write("D=M-D\n") # D now contains the result of the comparison
-
-            self.RunningIndComps += 1
-            iftrueloc = "IFTRUELOC." + str(self.RunningIndComps)
-            continueloc = "CONTINUELOC." + str(self.RunningIndComps)
-
-            self.outfile.write("@" + iftrueloc + "\n")
-            self.outfile.write("D;JLT\n")
+            operation = self.comparison_operations[command]
+            ## TO DO: self passed also here? was this the thing with bound methods?
+            operation()
+            
             self.outfile.write("D=0\n")
             self.outfile.write("@" + continueloc + "\n")
             self.outfile.write("0;JMP\n")
@@ -101,17 +72,15 @@ class CodeWriter:
             self.dereferenceSP()
             self.outfile.write("M=D\n")
         elif command in ["add", "sub", "and", "or"]:
-            self.prepareForArithmetic()
-        operation = self.arithmetic_operations.get(command)
-        if operation:
+            self.decreaseSP()
+            self.dereferenceSP()
+            operation = self.arithmetic_operations[command]
+            operation()
+        elif command in ["neg", "not"]:
+            operation = self.arithmetic_operations[command]
             operation()
 
         self.increaseSP()
-    
-
-    def prepareForArithmetic(self):
-        self.decreaseSP()
-        self.dereferenceSP()
     
     def add(self):
         self.outfile.write("M=D+M\n")
@@ -130,6 +99,15 @@ class CodeWriter:
     
     def not_op(self):
         self.outfile.write("M=!D\n")
+    
+    def eq(self):
+        self.outfile.write("D;JEQ\n")
+
+    def gt(self):
+        self.outfile.write("D;JGT\n")
+
+    def lt(self):
+        self.outfile.write("D;JLT\n")
 
     def writePush(self, segment, index):
         if segment == "constant":
