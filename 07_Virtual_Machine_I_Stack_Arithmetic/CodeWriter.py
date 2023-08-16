@@ -11,6 +11,10 @@ class CodeWriter:
         'this': 'THIS', 
         'that': 'THAT'
     }
+    pointer_temp_addresses = {
+        'temp': 5, 
+        'pointer': 3
+    }
 
     def __init__(self, outfilename: str) -> None:
         self.outfile = open(outfilename, "w")
@@ -122,8 +126,8 @@ class CodeWriter:
             self.outfile.write("A=D+M\n")
             self.outfile.write("D=M\n")
             self.pushDRegisterOntoStack()
-        elif segment == "temp":
-            ram_loc = 5 + index
+        elif segment in ["temp", "pointer"]:
+            ram_loc = self.pointer_temp_addresses[segment] + index
             # get value from ram location and then put on stack
             self.outfile.write(f"@{str(ram_loc)}\n")
             self.outfile.write("D=M\n")
@@ -144,8 +148,8 @@ class CodeWriter:
             self.outfile.write("@R13\n")
             self.dereferenceSP()
             self.outfile.write("M=D\n")
-        elif segment == "temp":
-            ram_loc = 5 + index
+        elif segment in ["temp", "pointer"]:
+            ram_loc = self.pointer_temp_addresses[segment] + index
             self.decreaseSP()
             self.dereferenceSP()
             self.outfile.write("D=M\n")
