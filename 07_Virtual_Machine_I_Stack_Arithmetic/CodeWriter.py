@@ -1,3 +1,5 @@
+from pathlib import Path
+
 class CodeWriter:
     StackAddress = 256
     # this class variable keeps a record of how often one of eq/gt/lt operations have been run
@@ -17,6 +19,7 @@ class CodeWriter:
     }
 
     def __init__(self, outfilename: str) -> None:
+        self.outfilename = outfilename
         self.outfile = open(outfilename, "w")
         # initialise SP value:
         self.outfile.write(f"@{self.StackAddress}\n")
@@ -132,6 +135,11 @@ class CodeWriter:
             self.outfile.write(f"@{str(ram_loc)}\n")
             self.outfile.write("D=M\n")
             self.pushDRegisterOntoStack()
+        elif segment == "static":
+            varname = self.make_static_varname(index)
+            self.outfile.write(f"@{varname}\n")
+            self.outfile.write("D=M\n")
+            self.pushDRegisterOntoStack()
         self.increaseSP()
     
     def writePop(self, segment, index):
@@ -155,6 +163,13 @@ class CodeWriter:
             self.outfile.write("D=M\n")
             self.outfile.write(f"@{str(ram_loc)}\n")
             self.outfile.write("M=D\n")
+        elif segment == "static":
+            varname = self.make_static_varname(index)
+            self.decreaseSP()
+            self.dereferenceSP()
+            self.outfile.write("D=M\n")
+            self.outfile.write(f"@{varname}\n")
+            self.outfile.write("M=D\n")
 
     def popIntoDRegister(self):
         self.decreaseSP()
@@ -176,6 +191,10 @@ class CodeWriter:
     
     def dereferenceSP(self):
         self.outfile.write("A=M\n")
+
+    def make_static_varname(self, index):
+        var_name = Path(self.outfilename).stem + "." + str(index)
+        return var_name
 
     def close(self):
         self.outfile.close()

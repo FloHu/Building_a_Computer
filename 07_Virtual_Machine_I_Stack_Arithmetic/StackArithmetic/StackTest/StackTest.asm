@@ -369,10 +369,7 @@ M=M+1
 M=M-1
 A=M
 D=M
-D=-D
-@SP
-A=M
-M=D
+M=-D
 @SP
 M=M+1
 @SP
@@ -406,9 +403,6 @@ M=M+1
 M=M-1
 A=M
 D=M
-D=!D
-@SP
-A=M
-M=D
+M=!D
 @SP
 M=M+1
