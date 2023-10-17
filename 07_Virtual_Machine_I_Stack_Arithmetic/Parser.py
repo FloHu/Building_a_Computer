@@ -6,9 +6,9 @@ class Parser:
     commandTypeLUT = {
         'push' : 'C_PUSH', 
         'pop' : 'C_POP', 
-        'NA0' : 'C_LABEL', 
-        'NA1' : 'C_GOTO', 
-        'NA2' : 'C_IF', 
+        'label' : 'C_LABEL', 
+        'goto' : 'C_GOTO', 
+        'if-goto' : 'C_IF', 
         'NA3' : 'C_FUNCTION', 
         'NA4' : 'C_RETURN', 
         'NA5' : 'C_CALL'

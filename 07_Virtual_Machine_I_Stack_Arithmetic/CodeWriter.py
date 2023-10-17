@@ -45,12 +45,19 @@ class CodeWriter:
     
     def writeCommand(self, cmd_type: str, arg1: str, arg2: str):
         ## TO DO: switch case in Python available since 3.10 - use here? 
+        ## or what other construct could we use? 
         if cmd_type == "C_PUSH":
             self.writePush(segment=arg1, index=arg2)
         elif cmd_type == "C_POP":
             self.writePop(segment=arg1, index=arg2)
         elif cmd_type == "C_ARITHMETIC":
             self.writeArithmetic(command=arg1)
+        elif cmd_type == "C_LABEL":
+            self.writeLabel(label=arg1)
+        elif cmd_type == "C_GOTO":
+            self.writeGoTo(label=arg1)
+        elif cmd_type == "C_IF":
+            self.writeIf(label=arg1)
 
     def writeArithmetic(self, command):
         self.popIntoDRegister()
@@ -170,6 +177,19 @@ class CodeWriter:
             self.outfile.write("D=M\n")
             self.outfile.write(f"@{varname}\n")
             self.outfile.write("M=D\n")
+    
+    def writeLabel(self, label):
+        self.outfile.write(f"({label})\n")
+    
+    def writeIf(self, label):
+        # fetch value from top of the stack, load into D, check condition
+        self.popIntoDRegister()
+        self.outfile.write(f"@{label}\n")
+        self.outfile.write("D;JNE\n")
+    
+    def writeGoTo(self, label):
+        self.outfile.write(f"@{label}\n") 
+        self.outfile.write("0;JMP\n")
 
     def popIntoDRegister(self):
         self.decreaseSP()
