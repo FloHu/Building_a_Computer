@@ -67,7 +67,8 @@ for vm_file in vm_files:
         try:
             parser.advance()
             cmd_type, arg1, arg2 = parser.currentCommandType, parser.getArg1(), parser.getArg2()
-            code_writer.writeCommand(cmd_type=cmd_type, arg1=arg1, arg2=arg2)
+            current_func = parser.getCurrentFunction()
+            code_writer.writeCommand(cmd_type=cmd_type, arg1=arg1, arg2=arg2, current_func=current_func)
 
         except EOFError:
             print("\nTranslation of .vm files finished")

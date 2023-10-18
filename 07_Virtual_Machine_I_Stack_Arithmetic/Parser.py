@@ -9,9 +9,9 @@ class Parser:
         'label' : 'C_LABEL', 
         'goto' : 'C_GOTO', 
         'if-goto' : 'C_IF', 
-        'NA3' : 'C_FUNCTION', 
-        'NA4' : 'C_RETURN', 
-        'NA5' : 'C_CALL'
+        'function' : 'C_FUNCTION', 
+        'return' : 'C_RETURN', 
+        'call' : 'C_CALL'
     }
 
     def __init__(self, file) -> None:
@@ -22,6 +22,7 @@ class Parser:
             inputlines = f.readlines()
             self.codelines = self.clean_code(inputlines=inputlines)
             self.currentCommand = ''
+            self.currentFunction = ''
     
     def clean_line(self, line):
         # remove all comments and whitespace/newlines from a line
@@ -54,17 +55,25 @@ class Parser:
     def getCurrentCommandTokens(self):
         tokens = self.currentCommand.split()
         return tokens
+    
+    def getCurrentFunction(self):
+        return self.currentFunction
 
     def getCurrentCommandType(self):
+        ## TO DO: could introduce syntax check here if command type is not found
         cmd_type = self.commandTypeLUT.get(self.currentCommandTokens[0], 'C_ARITHMETIC')
         return cmd_type
     
     def getArg1(self):
         if self.currentCommandType == "C_RETURN":
+            self.currentFunction = ''
             return ''
         elif self.currentCommandType == "C_ARITHMETIC":
             return self.currentCommandTokens[0]
-        else:
+        elif self.currentCommandType in ["C_PUSH", "C_POP", "C_FUNCTION", "C_CALL", "C_LABEL", "C_GOTO", "C_IF"]:
+            ## to do: can retrieval/parsing of current function be solved in a more elegant way? 
+            if self.currentCommandType == "C_FUNCTION":
+                self.currentFunction = self.currentCommandTokens[1]
             return self.currentCommandTokens[1]
 
     def getArg2(self):

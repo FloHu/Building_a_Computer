@@ -22,10 +22,10 @@ class CodeWriter:
         self.outfilename = outfilename
         self.outfile = open(outfilename, "w")
         # initialise SP value:
-        self.outfile.write(f"@{self.StackAddress}\n")
-        self.outfile.write("D=A\n")
-        self.outfile.write("@SP\n")
-        self.outfile.write("M=D\n")
+        #self.outfile.write(f"@{self.StackAddress}\n")
+        #self.outfile.write("D=A\n")
+        #self.outfile.write("@SP\n")
+        #self.outfile.write("M=D\n")
         
         self.arithmetic_operations = {
             "add": self.add, 
@@ -43,7 +43,7 @@ class CodeWriter:
         }
 
     
-    def writeCommand(self, cmd_type: str, arg1: str, arg2: str):
+    def writeCommand(self, cmd_type: str, arg1: str, arg2: str, current_func: str):
         ## TO DO: switch case in Python available since 3.10 - use here? 
         ## or what other construct could we use? 
         if cmd_type == "C_PUSH":
@@ -52,12 +52,19 @@ class CodeWriter:
             self.writePop(segment=arg1, index=arg2)
         elif cmd_type == "C_ARITHMETIC":
             self.writeArithmetic(command=arg1)
+        ## TO DO: improve scoping of label names - this looks rather brittle
         elif cmd_type == "C_LABEL":
-            self.writeLabel(label=arg1)
+            self.writeLabel(label=arg1, current_func=current_func)
         elif cmd_type == "C_GOTO":
-            self.writeGoTo(label=arg1)
+            self.writeGoTo(label=arg1, current_func=current_func)
         elif cmd_type == "C_IF":
-            self.writeIf(label=arg1)
+            self.writeIf(label=arg1, current_func=current_func)
+        elif cmd_type == "C_FUNCTION":
+            self.writeFunction(functionName=arg1, numLocals=arg2)
+        elif cmd_type == "C_RETURN":
+            self.writeReturn()
+        elif cmd_type == "C_CALL":
+            self.writeCall(functionName=arg1, numArgs=arg2)
 
     def writeArithmetic(self, command):
         self.popIntoDRegister()
@@ -178,18 +185,87 @@ class CodeWriter:
             self.outfile.write(f"@{varname}\n")
             self.outfile.write("M=D\n")
     
-    def writeLabel(self, label):
+    def writeLabel(self, label, current_func):
+        if current_func:
+            label = f"{current_func}${label}"
         self.outfile.write(f"({label})\n")
     
-    def writeIf(self, label):
+    def writeIf(self, label, current_func):
         # fetch value from top of the stack, load into D, check condition
+        if current_func:
+            label = f"{current_func}${label}"
         self.popIntoDRegister()
         self.outfile.write(f"@{label}\n")
         self.outfile.write("D;JNE\n")
     
-    def writeGoTo(self, label):
+    def writeGoTo(self, label, current_func):
+        if current_func:
+            label = f"{current_func}${label}"
         self.outfile.write(f"@{label}\n") 
         self.outfile.write("0;JMP\n")
+    
+    def writeFunction(self, functionName, numLocals):
+        # define a label
+        ## TO DO: get file name information? 
+        self.writeLabel(label=functionName, current_func='')
+        for ind in range(numLocals):
+            self.writePush(segment="constant", index=0)
+            #self.writePop(segment="local", index=ind)
+
+    def writeCall(self, functionName, numArgs):
+        pass
+
+    def writeReturn(self):
+        # FRAME = LCL in VM language, FRAME is a temporary variable
+        # save value of LCL in D then update value in FRAME
+        self.outfile.write("@LCL\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@FRAME\n")
+        self.outfile.write("M=D\n")
+        # RET = *(FRAME-5)
+        for _ in range(5):
+            self.outfile.write("D=D-1\n")
+        self.outfile.write("@RET\n")
+        self.outfile.write("M=D\n")
+        # *ARG = pop()
+        self.popIntoDRegister()
+        self.outfile.write("@ARG\n")
+        self.outfile.write("A=M\n")
+        self.outfile.write("M=D\n")
+        # SP = ARG + 1
+        self.outfile.write("@ARG\n")
+        self.outfile.write("D=M+1\n")
+        self.outfile.write("@SP\n") 
+        self.outfile.write("M=D\n")
+        # THAT = *(FRAME - 1)
+        self.outfile.write("@FRAME\n")
+        # D is now the correct address, now need to set value in @THAT to that address' value
+        # self.outfile.write("D=M-1\n")
+        self.outfile.write("AM=M-1\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@THAT\n")
+        self.outfile.write("M=D\n")
+        # THIS = *(FRAME - 2)
+        self.outfile.write("@FRAME\n")
+        self.outfile.write("AM=M-1\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@THIS\n")
+        self.outfile.write("M=D\n")
+        # ARG = *(FRAME - 3)
+        self.outfile.write("@FRAME\n")
+        self.outfile.write("AM=M-1\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@ARG\n")
+        self.outfile.write("M=D\n")
+        # LCL = *(FRAME - 4)
+        self.outfile.write("@FRAME\n")
+        self.outfile.write("AM=M-1\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@LCL\n")
+        self.outfile.write("M=D\n")
+        # goto RET
+        #self.outfile.write("@RET\n")
+        #self.outfile.write("0;JMP\n")
 
     def popIntoDRegister(self):
         self.decreaseSP()
