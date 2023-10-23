@@ -67,7 +67,13 @@ for vm_file in vm_files:
         try:
             parser.advance()
             cmd_type, arg1, arg2 = parser.currentCommandType, parser.getArg1(), parser.getArg2()
-            current_func = parser.getCurrentFunction()
+            # if cmd_type is C_FUNCTION it means we are in a function definition 
+            # and therefore need to keep track of which function it is (in order to 
+            # write out labels correctly)
+            # TO DO: how to parse nested function definitions? 
+            if cmd_type == "C_FUNCTION":
+                current_func = arg1
+                print(f"Setting current_func to {current_func}")
             code_writer.writeCommand(cmd_type=cmd_type, arg1=arg1, arg2=arg2, current_func=current_func)
 
         except EOFError:

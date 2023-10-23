@@ -21,11 +21,14 @@ class CodeWriter:
     def __init__(self, outfilename: str) -> None:
         self.outfilename = outfilename
         self.outfile = open(outfilename, "w")
+        self.ncalls = 0
         # initialise SP value:
-        #self.outfile.write(f"@{self.StackAddress}\n")
-        #self.outfile.write("D=A\n")
-        #self.outfile.write("@SP\n")
-        #self.outfile.write("M=D\n")
+        self.outfile.write(f"@{self.StackAddress}\n")
+        self.outfile.write("D=A\n")
+        self.outfile.write("@SP\n")
+        self.outfile.write("M=D\n")
+        # write Sys.init: 
+        self.writeCall(functionName="Sys.init", numArgs=0)
         
         self.arithmetic_operations = {
             "add": self.add, 
@@ -210,10 +213,53 @@ class CodeWriter:
         self.writeLabel(label=functionName, current_func='')
         for ind in range(numLocals):
             self.writePush(segment="constant", index=0)
-            #self.writePop(segment="local", index=ind)
 
     def writeCall(self, functionName, numArgs):
-        pass
+        # keep track of total number of all function calls
+        self.ncalls += 1
+        # make unique label for return-address
+        return_addr = f"{functionName}.{self.ncalls}"
+        # push return-address (label declaration is after goto f)
+        self.outfile.write(f"@{return_addr}\n")
+        self.outfile.write("D=A\n")
+        self.pushDRegisterOntoStack()
+        self.increaseSP()
+        # push LCL
+        self.outfile.write("@LCL\n")
+        self.outfile.write("D=M\n")
+        self.pushDRegisterOntoStack()
+        self.increaseSP()
+        # push ARG
+        self.outfile.write("@ARG\n")
+        self.outfile.write("D=M\n")
+        self.pushDRegisterOntoStack()
+        self.increaseSP()
+        # push THIS
+        self.outfile.write("@THIS\n")
+        self.outfile.write("D=M\n")
+        self.pushDRegisterOntoStack()
+        self.increaseSP()
+        # push THAT
+        self.outfile.write("@THAT\n")
+        self.outfile.write("D=M\n")
+        self.pushDRegisterOntoStack()
+        self.increaseSP()
+        # ARG = SP - n - 5
+        self.outfile.write("@SP\n")
+        self.outfile.write("D=M\n")
+        for _ in range(5 + numArgs):
+            self.outfile.write("D=D-1\n")
+        self.outfile.write("@ARG\n")
+        self.outfile.write("M=D\n")
+        # LCL = SP
+        self.outfile.write("@SP\n")
+        self.outfile.write("D=M\n")
+        self.outfile.write("@LCL\n")
+        self.outfile.write("M=D\n")
+        # goto f
+        self.writeGoTo(label=functionName, current_func='')
+        self.outfile.write(f"({return_addr})\n")
+
 
     def writeReturn(self):
         # FRAME = LCL in VM language, FRAME is a temporary variable
@@ -225,6 +271,9 @@ class CodeWriter:
         # RET = *(FRAME-5)
         for _ in range(5):
             self.outfile.write("D=D-1\n")
+        # D is now FRAME - 5
+        self.outfile.write("A=D\n")
+        self.outfile.write("D=M\n")
         self.outfile.write("@RET\n")
         self.outfile.write("M=D\n")
         # *ARG = pop()
@@ -264,8 +313,9 @@ class CodeWriter:
         self.outfile.write("@LCL\n")
         self.outfile.write("M=D\n")
         # goto RET
-        #self.outfile.write("@RET\n")
-        #self.outfile.write("0;JMP\n")
+        self.outfile.write("@RET\n")
+        self.outfile.write("A=M\n")
+        self.outfile.write("0;JMP\n")
 
     def popIntoDRegister(self):
         self.decreaseSP()
