@@ -47,22 +47,7 @@ print(f"Writing code to {outfilename}")
 
 for vm_file in vm_files:
     parser = Parser(file=vm_file)
-    """
-    print(f"parser.codelines: {parser.codelines}")
-    print()
-    while True:
-        try:
-            parser.advance()
-            print(f"parser.currentCommand: {parser.currentCommand}")
-            print(f"parser.currentCommandType: {parser.currentCommandType}")
-            print(f"parser.currentCommandTokens: {parser.currentCommandTokens}")
-            print(f"parser.getArg1: {parser.getArg1()}")
-            print(f"parser.getArg2: {parser.getArg2()}")
-            print()
-        except Exception as e:
-            print(e)
-            break
-    """
+    code_writer.current_input_file = vm_file
     while parser.hasMoreCommands():
         try:
             parser.advance()
@@ -81,4 +66,3 @@ for vm_file in vm_files:
             code_writer.close()
             break
 
-#code_writer.close()

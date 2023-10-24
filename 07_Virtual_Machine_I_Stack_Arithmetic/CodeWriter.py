@@ -22,6 +22,7 @@ class CodeWriter:
         self.outfilename = outfilename
         self.outfile = open(outfilename, "w")
         self.ncalls = 0
+        self.current_input_file = ''
         # initialise SP value:
         self.outfile.write(f"@{self.StackAddress}\n")
         self.outfile.write("D=A\n")
@@ -260,7 +261,6 @@ class CodeWriter:
         self.writeGoTo(label=functionName, current_func='')
         self.outfile.write(f"({return_addr})\n")
 
-
     def writeReturn(self):
         # FRAME = LCL in VM language, FRAME is a temporary variable
         # save value of LCL in D then update value in FRAME
@@ -339,7 +339,7 @@ class CodeWriter:
         self.outfile.write("A=M\n")
 
     def make_static_varname(self, index):
-        var_name = Path(self.outfilename).stem + "." + str(index)
+        var_name = Path(self.current_input_file).stem + "." + str(index)
         return var_name
 
     def close(self):
